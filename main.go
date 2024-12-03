@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 )
 
@@ -57,9 +58,12 @@ func handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 func handleFiles(s *discordgo.Session, m *discordgo.MessageCreate) {
 	for _, attachment := range m.Attachments {
-		if attachment.Filename == "example.txt" {
-			channelID := "your-target-channel-id"
+		// Check if the filename contains a valid prefix
+		if strings.HasPrefix(attachment.Filename, "adse") || strings.HasPrefix(attachment.Filename, "dafe") || strings.HasPrefix(attachment.Filename, "dats") {
+			// First 8 characters are the channel ID, i.e subjectID
+			channelID := attachment.Filename[:8]
 			s.ChannelMessageSend(channelID, m.Content)
 		}
 	}
+
 }
