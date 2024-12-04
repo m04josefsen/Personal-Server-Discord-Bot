@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
 	"log"
+	"net/http"
 	"os"
 	"os/signal"
 	"strings"
@@ -57,13 +58,53 @@ func handleMessage(s *discordgo.Session, m *discordgo.MessageCreate) {
 }
 
 func handleFiles(s *discordgo.Session, m *discordgo.MessageCreate) {
-	for _, attachment := range m.Attachments {
-		// Check if the filename contains a valid prefix
-		if strings.HasPrefix(attachment.Filename, "adse") || strings.HasPrefix(attachment.Filename, "dafe") || strings.HasPrefix(attachment.Filename, "dats") {
-			// First 8 characters are the channel ID, i.e subjectID
-			channelID := attachment.Filename[:8]
-			s.ChannelMessageSend(channelID, m.Content)
-		}
+	fmt.Println("in handle files")
+
+	subjectToChannel := map[string]string{
+		"adse1310": "1",
+		"adse2100": "1313564569058279506",
+		"dafe2200": "2",
+		"dats2300": "3",
 	}
 
+	for _, attachment := range m.Attachments {
+
+		// filename -> lowercase
+		lowerFilename := strings.ToLower(attachment.Filename)
+		fmt.Println(lowerFilename)
+
+		if strings.HasPrefix(lowerFilename, "adse") || strings.HasPrefix(lowerFilename, "dafe") || strings.HasPrefix(lowerFilename, "dats") {
+			channelID := lowerFilename[:8]
+			fmt.Println("Extracted channelID:", channelID)
+
+			actualChannelID, exists := subjectToChannel[channelID]
+			fmt.Println("Actual channelID:", actualChannelID)
+
+			if !exists {
+				fmt.Println("Invalid channelID:", channelID)
+				continue
+			}
+
+			if strings.HasSuffix(lowerFilename, ".pdf") {
+
+				// Forward the PDF
+				resp, err := http.Get(attachment.URL) // Download the PDF
+				if err != nil {
+					log.Println("Error downloading PDF:", err)
+					continue
+				}
+				defer resp.Body.Close()
+
+				// Send the PDF to the target channel
+				_, err = s.ChannelFileSend(actualChannelID, attachment.Filename, resp.Body) // Corrected here
+				if err != nil {
+					log.Println("Error forwarding PDF:", err)
+				} else {
+					log.Println("PDF forwarded successfully:", attachment.Filename)
+				}
+
+				fmt.Println("At the end of .pdf if")
+			}
+		}
+	}
 }
